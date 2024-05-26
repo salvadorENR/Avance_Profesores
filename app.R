@@ -12,7 +12,7 @@ con <- dbConnect(RMySQL::MySQL(),
                  user = "root",
                  password = "Mined2016!")
 
-# Verificar la conexión ejecutando una consulta simple
+# Verify the connection by executing a simple query
 test_connection <- function(con) {
   tryCatch({
     result <- dbGetQuery(con, "SELECT DATABASE()")
@@ -53,7 +53,6 @@ ui <- fluidPage(
 
 # Define server logic
 server <- function(input, output, session) {
-  
   # Dynamically create "Tomo" UI for Grade 1 and Grade 2
   output$tomo_ui <- renderUI({
     if (input$grade %in% c("Grado 1", "Grado 2")) {
@@ -82,9 +81,7 @@ server <- function(input, output, session) {
   })
   
   # Function to generate histogram plot for a specific grade
-  generate_histogram <- function(grade) {
-    query <- sprintf("SELECT * FROM page_data WHERE Grade = '%s'", grade)
-    data <- dbGetQuery(con, query)
+  generate_histogram <- function(grade, data) {
     if (nrow(data) == 0) return(NULL)
     avg_page <- mean(data$Page, na.rm = TRUE)
     
@@ -101,8 +98,11 @@ server <- function(input, output, session) {
   # Generate and render histograms for all grades
   render_histograms <- function() {
     lapply(paste("Grado", 1:11), function(grade) {
+      query <- sprintf("SELECT * FROM page_data WHERE Grade = '%s'", grade)
+      data <- dbGetQuery(con, query)
+      
       output[[paste0("hist_", grade)]] <- renderPlot({
-        generate_histogram(grade)
+        generate_histogram(grade, data)
       })
     })
     
