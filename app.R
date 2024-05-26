@@ -2,18 +2,32 @@ library(shiny)
 library(ggplot2)
 library(dplyr)
 library(DBI)
-library(RSQLite)
+library(RMySQL)
 
-# Connect to SQLite database
-con <- dbConnect(RSQLite::SQLite(), "textbook_pages.db")
+# Connect to MySQL database using RMySQL
+con <- dbConnect(RMySQL::MySQL(),
+                 dbname = "avance_profesores",
+                 host = "localhost",
+                 port = 3306,
+                 user = "root",
+                 password = "Mined2016!")
 
-# Create table if it doesn't exist
-if (!dbExistsTable(con, "page_data")) {
-  dbExecute(con, "CREATE TABLE page_data (
-                  Grade TEXT,
-                  Page INTEGER,
-                  Department TEXT
-                )")
+# Verificar la conexión ejecutando una consulta simple
+test_connection <- function(con) {
+  tryCatch({
+    result <- dbGetQuery(con, "SELECT DATABASE()")
+    print(result)
+    TRUE
+  }, error = function(e) {
+    print(paste("Error en la conexión:", e$message))
+    FALSE
+  })
+}
+
+if (test_connection(con)) {
+  print("Conexión exitosa a la base de datos.")
+} else {
+  print("Fallo en la conexión a la base de datos.")
 }
 
 # Define UI for application
@@ -61,14 +75,16 @@ server <- function(input, output, session) {
     adjusted_page <- ifelse(input$grade %in% c("Grado 1", "Grado 2") && input$tomo == 2, input$page + 160, input$page)
     
     # Insert data into the database
-    dbExecute(con, "INSERT INTO page_data (Grade, Page, Department) VALUES (?, ?, ?)", params = list(input$grade, adjusted_page, input$department))
+    query <- sprintf("INSERT INTO page_data (Grade, Page, Department) VALUES ('%s', %d, '%s')", input$grade, adjusted_page, input$department)
+    dbExecute(con, query)
     
     output$message <- renderText("Datos enviados con éxito.")
   })
   
   # Function to generate histogram plot for a specific grade
   generate_histogram <- function(grade) {
-    data <- dbGetQuery(con, "SELECT * FROM page_data WHERE Grade = ?", params = list(grade))
+    query <- sprintf("SELECT * FROM page_data WHERE Grade = '%s'", grade)
+    data <- dbGetQuery(con, query)
     if (nrow(data) == 0) return(NULL)
     avg_page <- mean(data$Page, na.rm = TRUE)
     
