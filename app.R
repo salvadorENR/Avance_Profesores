@@ -10,7 +10,7 @@ con <- dbConnect(RMySQL::MySQL(),
                  host = "localhost",
                  port = 3306,
                  user = "root",
-                 password = "Mined2016!")
+                 password = "Mined2024")
 
 # Verify the connection by executing a simple query
 test_connection <- function(con) {
@@ -84,7 +84,14 @@ server <- function(input, output, session) {
   
   # Function to generate histogram plot for a specific grade
   generate_histogram <- function(grade, data, user_page) {
-    if (nrow(data) == 0) return(NULL)
+    # Convert Page to numeric
+    data$Page <- as.numeric(data$Page)
+    
+    # Check if there's any missing or non-numeric values in Page
+    if (any(is.na(data$Page)) || any(!is.numeric(data$Page))) {
+      return(NULL)
+    }
+    
     avg_page <- mean(data$Page, na.rm = TRUE)
     
     plot <- ggplot(data, aes(x = Page)) +
