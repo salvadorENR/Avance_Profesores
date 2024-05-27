@@ -41,7 +41,6 @@ ui <- fluidPage(
       uiOutput("tomo_ui"),
       numericInput("page", "Ingresar Número de Página:", value = 0, min = 0, max = 160),
       actionButton("submit", "Enviar"),
-      actionButton("update", "Actualizar Histogramas"),
       textOutput("message")
     ),
     
@@ -78,14 +77,17 @@ server <- function(input, output, session) {
     dbExecute(con, query)
     
     output$message <- renderText("Datos enviados con éxito.")
+    
+    # Call render_histograms with user's page number and grade
+    render_histograms(input$grade, adjusted_page)
   })
   
   # Function to generate histogram plot for a specific grade
-  generate_histogram <- function(grade, data) {
+  generate_histogram <- function(grade, data, user_page) {
     if (nrow(data) == 0) return(NULL)
     avg_page <- mean(data$Page, na.rm = TRUE)
     
-    ggplot(data, aes(x = Page)) +
+    plot <- ggplot(data, aes(x = Page)) +
       geom_histogram(binwidth = 1, fill = "skyblue", color = "black", alpha = 0.7) +
       geom_vline(aes(xintercept = avg_page), color = "red", linetype = "dashed", linewidth = 1) +
       geom_vline(xintercept = 145, color = "green", linetype = "dashed", linewidth = 1) +
@@ -93,16 +95,23 @@ server <- function(input, output, session) {
            x = "Número de Página",
            y = "Frecuencia") +
       theme_minimal()
+    
+    # Add blue line for user's page
+    if (grade == input$grade) {
+      plot <- plot + geom_vline(xintercept = user_page, color = "blue", linetype = "dashed", linewidth = 1)
+    }
+    
+    return(plot)
   }
   
   # Generate and render histograms for all grades
-  render_histograms <- function() {
+  render_histograms <- function(selected_grade, user_page) {
     lapply(paste("Grado", 1:11), function(grade) {
       query <- sprintf("SELECT * FROM page_data WHERE Grade = '%s'", grade)
       data <- dbGetQuery(con, query)
       
       output[[paste0("hist_", grade)]] <- renderPlot({
-        generate_histogram(grade, data)
+        generate_histogram(grade, data, user_page)
       })
     })
     
@@ -113,13 +122,8 @@ server <- function(input, output, session) {
     })
   }
   
-  # Update histograms on button click
-  observeEvent(input$update, {
-    render_histograms()
-  })
-  
   # Initial render of histograms
-  render_histograms()
+  render_histograms(input$grade, 0)
 }
 
 # Run the application 
