@@ -4,13 +4,35 @@ library(dplyr)
 library(DBI)
 library(RMySQL)
 
+# Function to create the database and table if they do not exist
+initialize_database <- function(con) {
+  # Create the database if it doesn't exist
+  dbExecute(con, "CREATE DATABASE IF NOT EXISTS avance_profesores")
+  
+  # Use the newly created database
+  dbExecute(con, "USE avance_profesores")
+  
+  # Create the table if it doesn't exist
+  dbExecute(con, "
+    CREATE TABLE IF NOT EXISTS page_data (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      Department VARCHAR(255),
+      Grade VARCHAR(255),
+      Page INT
+    )
+  ")
+}
+
 # Connect to MySQL database using RMySQL
 con <- dbConnect(RMySQL::MySQL(),
-                 dbname = "avance_profesores",
-                 host = "localhost",
+                 dbname = "",
+                 host = "your-online-server-host",
                  port = 3306,
-                 user = "root",
-                 password = "Mined2024")
+                 user = "your-username",
+                 password = "your-password")
+
+# Initialize the database and table
+initialize_database(con)
 
 # Verify the connection by executing a simple query
 test_connection <- function(con) {
