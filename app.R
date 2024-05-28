@@ -7,10 +7,10 @@ library(RMySQL)
 # Function to create the database and table if they do not exist
 initialize_database <- function(con) {
   # Create the database if it doesn't exist
-  dbExecute(con, "CREATE DATABASE IF NOT EXISTS avance_profesores")
+  #dbExecute(con, "CREATE DATABASE IF NOT EXISTS sql3709755")
   
   # Use the newly created database
-  dbExecute(con, "USE avance_profesores")
+  dbExecute(con, "USE sql3709755")
   
   # Create the table if it doesn't exist
   dbExecute(con, "
