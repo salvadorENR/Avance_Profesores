@@ -147,16 +147,34 @@ server <- function(input, output, session) {
   # Reactive value to store user input
   user_input <- reactiveValues(page = NULL, grade = NULL)
   
+  # Function to get the maximum page number for the selected grade
+  get_max_page <- function(grade) {
+    switch(grade,
+           "2° Grado" = 150,
+           "3° Grado" = 182,
+           "4° Grado" = 192,
+           "5° Grado" = 188,
+           "6° Grado" = 188,
+           "7° Grado" = 188,
+           "8° Grado" = 188,
+           "9° Grado" = 180,
+           "1° Año de Bachillerato" = 224,
+           "2° Año de Bachillerato" = 222,
+           160) # Default value
+  }
+  
   # Submit page data
   observeEvent(input$submit, {
+    max_page <- get_max_page(input$grade)
+    
     # Validate page number input
-    if (input$page < 0 || input$page > 160) {
-      output$message <- renderText("El número de página debe estar entre 0 y 160.")
+    if (input$page < 0 || input$page > max_page) {
+      output$message <- renderText(sprintf("El número de página debe estar entre 0 y %d.", max_page))
       return()
     }
     
     # Adjust page number for Tomo 2 in 2° Grado
-    adjusted_page <- ifelse(input$grade == "2° Grado" && input$tomo == 2, input$page + 160, input$page)
+    adjusted_page <- ifelse(input$grade == "2° Grado" && input$tomo == 2, input$page + 150, input$page)
     
     # Store user input
     user_input$page <- adjusted_page
