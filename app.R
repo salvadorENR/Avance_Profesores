@@ -59,10 +59,11 @@ ui <- fluidPage(
   sidebarLayout(
     sidebarPanel(
       selectInput("department", "Elegir Departamento:", choices = c("Ahuachapán", "Sonsonate", "Santa Ana", "La Libertad", "Chalatenango", "San Salvador", "Cuscatlán", "La Paz", "San Vicente", "Cabañas", "Usulután", "San Miguel", "Morazán", "La Unión")),
-      selectInput("grade", "Elegir Grado:", choices = paste("Grado", 1:11)),
+      selectInput("grade", "Elegir Grado:", choices = c("2° Grado", "3° Grado", "4° Grado", "5° Grado", "6° Grado", "7° Grado", "8° Grado", "9° Grado", "1° Año de Bachillerato", "2° Año de Bachillerato")),
       uiOutput("tomo_ui"),
       numericInput("page", "Ingresar Número de Página:", value = 0, min = 0, max = 160),
       actionButton("submit", "Enviar"),
+      actionButton("update", "Actualizar"),
       textOutput("message")
     ),
     
@@ -74,34 +75,13 @@ ui <- fluidPage(
 
 # Define server logic
 server <- function(input, output, session) {
-  # Dynamically create "Tomo" UI for Grade 1 and Grade 2
+  # Dynamically create "Tomo" UI for 2° Grado
   output$tomo_ui <- renderUI({
-    if (input$grade %in% c("Grado 1", "Grado 2")) {
+    if (input$grade == "2° Grado") {
       selectInput("tomo", "Elegir Tomo:", choices = c(1, 2))
     } else {
       NULL
     }
-  })
-  
-  # Submit page data
-  observeEvent(input$submit, {
-    # Validate page number input
-    if (input$page < 0 || input$page > 160) {
-      output$message <- renderText("El número de página debe estar entre 0 y 160.")
-      return()
-    }
-    
-    # Adjust page number for Tomo 2 in Grade 1 or Grade 2
-    adjusted_page <- ifelse(input$grade %in% c("Grado 1", "Grado 2") && input$tomo == 2, input$page + 160, input$page)
-    
-    # Insert data into the database
-    query <- sprintf("INSERT INTO page_data (Grade, Page, Department) VALUES ('%s', %d, '%s')", input$grade, adjusted_page, input$department)
-    dbExecute(con, query)
-    
-    output$message <- renderText("Datos enviados con éxito.")
-    
-    # Call render_histograms with user's page number and grade
-    render_histograms(input$grade, adjusted_page)
   })
   
   # Function to generate histogram plot for a specific grade
@@ -116,10 +96,23 @@ server <- function(input, output, session) {
     
     avg_page <- mean(data$Page, na.rm = TRUE)
     
+    green_line_pos <- switch(grade,
+                             "2° Grado" = 137,
+                             "3° Grado" = 88,
+                             "4° Grado" = 97,
+                             "5° Grado" = 91,
+                             "6° Grado" = 84,
+                             "7° Grado" = 80,
+                             "8° Grado" = 86,
+                             "9° Grado" = 80,
+                             "1° Año de Bachillerato" = 104,
+                             "2° Año de Bachillerato" = 106,
+                             145) # Default value
+    
     plot <- ggplot(data, aes(x = Page)) +
       geom_histogram(binwidth = 1, fill = "skyblue", color = "black", alpha = 0.7) +
       geom_vline(aes(xintercept = avg_page), color = "red", linetype = "dashed", linewidth = 1) +
-      geom_vline(xintercept = 145, color = "green", linetype = "dashed", linewidth = 1) +
+      geom_vline(xintercept = green_line_pos, color = "green", linetype = "dashed", linewidth = 1) +
       labs(title = paste("Distribución de Páginas para", grade),
            x = "Número de Página",
            y = "Frecuencia") +
@@ -135,21 +128,58 @@ server <- function(input, output, session) {
   
   # Generate and render histograms for all grades
   render_histograms <- function(selected_grade, user_page) {
-    lapply(paste("Grado", 1:11), function(grade) {
+    lapply(c("2° Grado", "3° Grado", "4° Grado", "5° Grado", "6° Grado", "7° Grado", "8° Grado", "9° Grado", "1° Año de Bachillerato", "2° Año de Bachillerato"), function(grade) {
       query <- sprintf("SELECT * FROM page_data WHERE Grade = '%s'", grade)
       data <- dbGetQuery(con, query)
       
-      output[[paste0("hist_", grade)]] <- renderPlot({
+      output[[paste0("hist_", gsub(" ", "_", gsub("°|Año_de_", "", grade)))]] <- renderPlot({
         generate_histogram(grade, data, user_page)
       })
     })
     
     output$histograms <- renderUI({
-      lapply(paste("Grado", 1:11), function(grade) {
-        plotOutput(paste0("hist_", grade))
+      lapply(c("2° Grado", "3° Grado", "4° Grado", "5° Grado", "6° Grado", "7° Grado", "8° Grado", "9° Grado", "1° Año de Bachillerato", "2° Año de Bachillerato"), function(grade) {
+        plotOutput(paste0("hist_", gsub(" ", "_", gsub("°|Año_de_", "", grade))))
       })
     })
   }
+  
+  # Reactive value to store user input
+  user_input <- reactiveValues(page = NULL, grade = NULL)
+  
+  # Submit page data
+  observeEvent(input$submit, {
+    # Validate page number input
+    if (input$page < 0 || input$page > 160) {
+      output$message <- renderText("El número de página debe estar entre 0 y 160.")
+      return()
+    }
+    
+    # Adjust page number for Tomo 2 in 2° Grado
+    adjusted_page <- ifelse(input$grade == "2° Grado" && input$tomo == 2, input$page + 160, input$page)
+    
+    # Store user input
+    user_input$page <- adjusted_page
+    user_input$grade <- input$grade
+    
+    # Insert data into the database
+    query <- sprintf("INSERT INTO page_data (Grade, Page, Department) VALUES ('%s', %d, '%s')", input$grade, adjusted_page, input$department)
+    dbExecute(con, query)
+    
+    output$message <- renderText("Datos enviados con éxito.")
+    
+    # Call render_histograms with user's page number and grade
+    render_histograms(input$grade, adjusted_page)
+  })
+  
+  # Update histograms with the most recent data
+  observeEvent(input$update, {
+    if (!is.null(user_input$page) && !is.null(user_input$grade)) {
+      render_histograms(user_input$grade, user_input$page)
+    } else {
+      render_histograms(input$grade, 0)
+    }
+  })
   
   # Initial render of histograms
   render_histograms(input$grade, 0)
