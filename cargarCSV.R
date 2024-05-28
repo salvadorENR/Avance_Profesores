@@ -1,3 +1,4 @@
+library(RMySQL)
 con <- dbConnect(RMySQL::MySQL(),
                  dbname = "sql3709755",
                  host = "sql3.freesqldatabase.com",
