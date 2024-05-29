@@ -51,7 +51,7 @@ ui <- fluidPage(
   
   sidebarLayout(
     sidebarPanel(
-      selectInput("department", "Elegir Departamento:", choices = c("Ahuachapán", "Sonsonate", "Santa Ana", "La Libertad", "Chalatenango", "San Salvador", "Cuscatlán", "La Paz", "San Vicente", "Cabañas", "Usulután", "San Miguel", "Morazán", "La Unión")),
+      selectInput("department", "Elegir Departamento:", choices = c("Seleccione un departamento", "Ahuachapán", "Sonsonate", "Santa Ana", "La Libertad", "Chalatenango", "San Salvador", "Cuscatlán", "La Paz", "San Vicente", "Cabañas", "Usulután", "San Miguel", "Morazán", "La Unión")),
       selectInput("grade", "Elegir Grado:", choices = c("2° Grado", "3° Grado", "4° Grado", "5° Grado", "6° Grado", "7° Grado", "8° Grado", "9° Grado", "1° Año de Bachillerato", "2° Año de Bachillerato")),
       uiOutput("tomo_ui"),
       numericInput("page", "Ingresar Número de Página:", value = 1, min = 1, max = 150),
@@ -97,8 +97,8 @@ server <- function(input, output, session) {
   # Function to generate histogram plot for a specific grade
   generate_histogram <- function(data, grade, user_page) {
     ggplot(data, aes(x = Page)) +
-      geom_histogram(binwidth = 1, fill = "skyblue", color = "black", alpha = 0.7) +
-      geom_vline(xintercept = mean(data$Page), color = "red", linetype = "dashed", size = 1) +
+      geom_histogram(binwidth = 1, fill = "skyblue", color = NA, alpha = 0.7) +
+      geom_vline(xintercept = mean(data$Page), color = "blue", linetype = "dashed", size = 1) +
       geom_vline(xintercept = switch(grade,
                                      "2° Grado" = 137,
                                      "3° Grado" = 88,
@@ -115,7 +115,7 @@ server <- function(input, output, session) {
            x = "Número de Página",
            y = "Frecuencia") +
       theme_minimal() +
-      geom_vline(xintercept = user_page, color = "blue", linetype = "dashed", size = 1)
+      geom_vline(xintercept = user_page, color = "red", linetype = "dashed", size = 1)
   }
   
   # Reactive value to manage the visibility of the success and invalid messages
@@ -136,8 +136,8 @@ server <- function(input, output, session) {
                        "1° Año de Bachillerato" = 224,
                        "2° Año de Bachillerato" = 222)
     
-    # Validate the page number input
-    if (is.null(input$page) || input$page == "" || !is.numeric(input$page) || input$page %% 1 != 0 || input$page < 1 || input$page > max_page) {
+    # Validate the page number and department input
+    if (input$department == "Seleccione un departamento" || is.null(input$page) || input$page == "" || !is.numeric(input$page) || input$page %% 1 != 0 || input$page < 1 || input$page > max_page) {
       invalid_count(invalid_count() + 1)
       output$message <- renderText(paste("Cantidad de datos incorrectos ingresados:", invalid_count()))
       return()
