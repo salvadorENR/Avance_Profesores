@@ -10,10 +10,10 @@ rsconnect::setAccountInfo(name='salvadorhernandez',
                           secret='Xu/+W3YeXdivSmXgmvOavpZAi6I9TWMGC/Hv+6Fi')
 
 # Set the working directory to where your app.R is located
-setwd("C:/Users/SERHernandez/Documents/PsycologicWellBeing/Avance_Profesores")
+setwd("C:/Users/salva/Documents/R projects Salvador/My Thesis Master Degree Japan/Avance_Profesores")
 
 # Deploy the application
-rsconnect::deployApp("C:/Users/SERHernandez/Documents/PsycologicWellBeing/Avance_Profesores")
+rsconnect::deployApp("C:/Users/salva/Documents/R projects Salvador/My Thesis Master Degree Japan/Avance_Profesores")
 
 
 
