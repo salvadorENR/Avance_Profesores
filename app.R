@@ -18,11 +18,11 @@ initialize_database <- function(con) {
 
 # Connect to MySQL database using RMySQL
 con <- dbConnect(RMySQL::MySQL(),
-                 dbname = "sql3710936",
-                 host = "sql3.freesqldatabase.com",
+                 dbname = "sql5713063",
+                 host = "sql5.freesqldatabase.com",
                  port = 3306,
-                 user = "sql3710936",
-                 password = "clUPkctGN2")
+                 user = "sql5713063",
+                 password = "NMXKA5SSGh")
 
 # Initialize the database and table
 initialize_database(con)
