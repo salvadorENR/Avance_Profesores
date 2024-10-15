@@ -1,13 +1,13 @@
 library(RMySQL)
 library(DBI)
 con <- dbConnect(RMySQL::MySQL(),
-                 dbname = "sql3710936",
-                 host = "sql3.freesqldatabase.com",
+                 dbname = "sql5713048",
+                 host = "sql5.freesqldatabase.com",
                  port = 3306,
-                 user = "sql3710936",
-                 password = "clUPkctGN2")
+                 user = "sql5713048",
+                 password = "9eD4G3plxZ")
 
-##Lee el csv
+yes##Lee el csv
 datos <- read.csv('mis_datos.csv')
 
 # Escribe los datos del csv en la base de datos
