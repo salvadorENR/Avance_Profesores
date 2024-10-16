@@ -177,61 +177,64 @@ server <- function(input, output, session) {
     personal_page <- input$page
     
     # Create a simple HTML table without
-    table_html <- paste0(
-      "<div style='width:50%; text-align:left;'>",
-      "<p style='color:blue'>Avance promedio: ", round(mean_page), "</p>",
-      "<p style='color:green'>Avance esperado: ", expected_page, "</p>",
-      "<p style='color:red'>Avance personal: ", personal_page, "</p>",
-      "</div>"
-    )
     
-    # Render the styled table
-    output$styled_table <- renderUI({
-      HTML(table_html)
-    })
+
+# Create a simple HTML table without borders
+table_html <- paste0(
+  "<div style='width:50%; text-align:left;'>",
+  "<p style='color:blue'>Avance promedio: ", round(mean_page), "</p>",
+  "<p style='color:green'>Avance esperado: ", expected_page, "</p>",
+  "<p style='color:red'>Avance personal: ", personal_page, "</p>",
+  "</div>"
+)
+
+# Render the styled table
+output$styled_table <- renderUI({
+  HTML(table_html)
+})
+})
+
+# Update histogram with the most recent data
+observeEvent(input$update_histogram, {
+  query <- sprintf("SELECT * FROM page_data WHERE Grade = '%s'", input$grade)
+  data <- dbGetQuery(con, query)
+  
+  output$histogram <- renderPlot({
+    plot <- generate_histogram(data, input$grade, input$page)
+    plot  # Return the plot without the legend
   })
   
-  # Update histogram with the most recent data
-  observeEvent(input$update_histogram, {
-    query <- sprintf("SELECT * FROM page_data WHERE Grade = '%s'", input$grade)
-    data <- dbGetQuery(con, query)
-    
-    output$histogram <- renderPlot({
-      plot <- generate_histogram(data, input$grade, input$page)
-      plot  # Return the plot without the legend
-    })
-    
-    # Prepare data for the table
-    mean_page <- mean(data$Page)
-    expected_page <- switch(input$grade,
-                            "2° Grado" = 115,
-                            "3° Grado" = 176,
-                            "4° Grado" = 188,
-                            "5° Grado" = 186,
-                            "6° Grado" = 179,
-                            "7° Grado" = 187,
-                            "8° Grado" = 183,
-                            "9° Grado" = 174,
-                            "1° Año de Bachillerato" = 224,
-                            "2° Año de Bachillerato" = 218)
-    personal_page <- input$page
-    
-    # Create a simple HTML table without borders
-    table_html <- paste0(
-      "<div style='width:50%; text-align:left;'>",
-      "<p style='color:blue'>Avance promedio: ", round(mean_page), "</p>",
-      "<p style='color:green'>Avance esperado: ", expected_page, "</p>",
-      "<p style='color:red'>Avance personal: ", personal_page, "</p>",
-      "</div>"
-    )
-    
-    # Render the styled table
-    output$styled_table <- renderUI({
-      HTML(table_html)
-    })
+  # Prepare data for the table
+  mean_page <- mean(data$Page)
+  expected_page <- switch(input$grade,
+                          "2° Grado" = 115,
+                          "3° Grado" = 176,
+                          "4° Grado" = 188,
+                          "5° Grado" = 186,
+                          "6° Grado" = 179,
+                          "7° Grado" = 187,
+                          "8° Grado" = 183,
+                          "9° Grado" = 174,
+                          "1° Año de Bachillerato" = 224,
+                          "2° Año de Bachillerato" = 218)
+  personal_page <- input$page
+  
+  # Create a simple HTML table without borders
+  table_html <- paste0(
+    "<div style='width:50%; text-align:left;'>",
+    "<p style='color:blue'>Avance promedio: ", round(mean_page), "</p>",
+    "<p style='color:green'>Avance esperado: ", expected_page, "</p>",
+    "<p style='color:red'>Avance personal: ", personal_page, "</p>",
+    "</div>"
+  )
+  
+  # Render the styled table
+  output$styled_table <- renderUI({
+    HTML(table_html)
   })
+})
 }
 
 # Run the application 
 shinyApp(ui = ui, server = server)
-    
+
