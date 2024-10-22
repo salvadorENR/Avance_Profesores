@@ -32,14 +32,15 @@ ui <- fluidPage(
                   choices = c("2° Grado", "3° Grado", "4° Grado", "5° Grado", "6° Grado", "7° Grado", 
                               "8° Grado", "9° Grado", "1° Año de Bachillerato", "2° Año de Bachillerato")),
       uiOutput("tomo_ui"),
+      textOutput("validation_message"),  # Display the validation reminder here
       numericInput("page", "Ingresar Número de Página:", value = 1, min = 1, max = 150),
-      actionButton("submit", "Registrar Progreso"),
-      textOutput("message"),
-      actionButton("show_histogram", "Mostrar gráfica")
+      textOutput("message"),  # Show success/error message here
+      actionButton("submit", "Registrar Progreso"),  # Button for submitting progress
+      actionButton("show_histogram", "Mostrar gráfica")  # Button for showing the histogram
     ),
     
     mainPanel(
-      plotOutput("histogram"),
+      plotOutput("histogram"),  # Display the plot here
       uiOutput("styled_table")  # Placeholder for the text under the plot
     )
   )
@@ -63,8 +64,13 @@ server <- function(input, output, session) {
     updateNumericInput(session, "page", value = 1, min = 1, max = max_page)
   })
   
+  # Display a reminder message about correct page number input
+  output$validation_message <- renderText({
+    "Recuerde que el número de página debe ser un número entero positivo y dentro del rango del libro."
+  })
+  
   # Function to generate histogram plot with three vertical lines
-  generate_histogram <- function(data, grade, user_page) {
+  generate_histogram <- function(data, grade, user_page, tomo) {
     mean_page <- mean(data$Page, na.rm = TRUE)  # Calculate the mean page number
     
     expected_page <- switch(grade,
@@ -73,14 +79,20 @@ server <- function(input, output, session) {
                             "6° Grado" = 179, "7° Grado" = 187, "8° Grado" = 183, "9° Grado" = 174,
                             "1° Año de Bachillerato" = 224, "2° Año de Bachillerato" = 218)
     
+    # Adjust legend for Segundo Grado with Tomo I or Tomo II
+    tomo_legend <- ifelse(grade == "2° Grado", 
+                          paste("Tomo", tomo, ", Pág.", user_page), 
+                          paste("Pág.", user_page))
+    
     ggplot(data, aes(x = Page)) +
       geom_histogram(binwidth = 1, fill = "skyblue", alpha = 0.7) +
       geom_vline(xintercept = mean_page, color = "blue", linetype = "dashed", size = 1) +
       geom_vline(xintercept = expected_page, color = "#00FF00", linetype = "dashed", size = 1) +
-      geom_vline(xintercept = user_page, color = "red", linetype = "dashed", size = 1) +  # Ensure the adjusted page is used here
+      geom_vline(xintercept = user_page, color = "red", linetype = "dashed", size = 1) +
       labs(title = paste("Distribución de Páginas para", grade),
            x = "Número de Página", y = "Frecuencia") +
-      theme_minimal()
+      theme_minimal() +
+      theme(legend.position = "bottom")
   }
   
   # Function to validate and register the progress in the database only if valid
@@ -128,7 +140,7 @@ server <- function(input, output, session) {
     
     output$histogram <- renderPlot({
       if (nrow(data) > 0) {
-        generate_histogram(data, input$grade, user_page)  # Use the adjusted user page here
+        generate_histogram(data, input$grade, user_page, input$tomo)  # Use the adjusted user page here and pass the tomo
       } else {
         showNotification("No hay datos registrados para este grado.", type = "warning")
       }
@@ -142,14 +154,18 @@ server <- function(input, output, session) {
                             "6° Grado" = 179, "7° Grado" = 187, "8° Grado" = 183, "9° Grado" = 174,
                             "1° Año de Bachillerato" = 224, "2° Año de Bachillerato" = 218)
     
+    # Adjust legend for Segundo Grado with Tomo I or Tomo II
+    personal_legend <- ifelse(input$grade == "2° Grado", 
+                              paste("Tomo", input$tomo, ", Pág.", input$page), 
+                              paste("Pág.", input$page))
+    
     # Create the HTML content for the line descriptions with the matching colors
     table_html <- paste0(
       "<div style='text-align:left;'>",
       "<p style='color:blue'>Avance promedio: ", round(mean_page), "</p>",
       "<p style='color:#00FF00'>Avance esperado: ", expected_page, "</p>",
-      "<p style='color:red'>Progreso personal: ", user_page, "</p>",
+      "<p style='color:red'>Progreso personal: ", personal_legend, "</p>",
       "</div>"
-      
     )
     
     # Render the HTML content with the colored text below the plot
@@ -161,5 +177,3 @@ server <- function(input, output, session) {
 
 # Run the application 
 shinyApp(ui = ui, server = server)
-
-      
