@@ -5,6 +5,6 @@ account: salvadorhernandez
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 13048439
-bundleId: 9250836
+bundleId: 9255581
 url: https://salvadorhernandez.shinyapps.io/avance_profesores/
 version: 1

@@ -69,6 +69,24 @@ server <- function(input, output, session) {
     "Recuerde que el número de página debe ser un número entero positivo y dentro del rango del libro."
   })
   
+  # Function to format the page number in terms of Tomo and Page
+  format_tomo_page <- function(page) {
+    if (page <= 150) {
+      return(paste("Tomo I, Pág.", page))
+    } else {
+      return(paste("Tomo II, Pág.", page - 150))
+    }
+  }
+  
+  # Function to round the page numbers based on the decimal part
+  round_page_number <- function(page) {
+    if (page %% 1 < 0.5) {
+      return(floor(page))
+    } else {
+      return(ceiling(page))
+    }
+  }
+  
   # Function to generate histogram plot with three vertical lines
   generate_histogram <- function(data, grade, user_page, tomo) {
     mean_page <- mean(data$Page, na.rm = TRUE)  # Calculate the mean page number
@@ -146,13 +164,25 @@ server <- function(input, output, session) {
       }
     })
     
-    # Generate the dynamic text for each line (below the plot)
+    # Calculate Avance Promedio and Avance Esperado in terms of Tomo and Page for Segundo Grado
     mean_page <- mean(data$Page, na.rm = TRUE)
     expected_page <- switch(input$grade,
                             "2° Grado" = 265,  # Corrected expected page for Segundo Grado
                             "3° Grado" = 176, "4° Grado" = 188, "5° Grado" = 186,
                             "6° Grado" = 179, "7° Grado" = 187, "8° Grado" = 183, "9° Grado" = 174,
                             "1° Año de Bachillerato" = 224, "2° Año de Bachillerato" = 218)
+    
+    # Round the mean page number according to the custom rounding logic
+    rounded_mean_page <- round_page_number(mean_page)
+    
+    # Format Avance Promedio and Avance Esperado for Segundo Grado
+    if (input$grade == "2° Grado") {
+      mean_page_formatted <- format_tomo_page(rounded_mean_page)
+      expected_page_formatted <- format_tomo_page(expected_page)
+    } else {
+      mean_page_formatted <- paste("Pág.", rounded_mean_page)
+      expected_page_formatted <- paste("Pág.", expected_page)
+    }
     
     # Adjust legend for Segundo Grado with Tomo I or Tomo II
     personal_legend <- ifelse(input$grade == "2° Grado", 
@@ -162,8 +192,8 @@ server <- function(input, output, session) {
     # Create the HTML content for the line descriptions with the matching colors
     table_html <- paste0(
       "<div style='text-align:left;'>",
-      "<p style='color:blue'>Avance promedio: ", round(mean_page), "</p>",
-      "<p style='color:#00FF00'>Avance esperado: ", expected_page, "</p>",
+      "<p style='color:blue'>Avance promedio: ", mean_page_formatted, "</p>",
+      "<p style='color:#00FF00'>Avance esperado: ", expected_page_formatted, "</p>",
       "<p style='color:red'>Progreso personal: ", personal_legend, "</p>",
       "</div>"
     )
