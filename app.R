@@ -12,11 +12,25 @@ con <- dbConnect(RMySQL::MySQL(),
                  user = "sql3720918",
                  password = "kHY2iadreR")
 
+# Close the database connection when the app stops
+onStop(function() {
+  dbDisconnect(con)
+})
+
 # Function to insert valid data into the database
 insert_page_data <- function(grade, department, page) {
   dbExecute(con, sprintf("INSERT INTO page_data (Grade, Department, Page) VALUES ('%s', '%s', %d)", 
                          grade, department, page))
 }
+
+# Final 2023 progress for each grade (defined once)
+final_2023_progress <- reactive({
+  list(
+    "2° Grado" = 268, "3° Grado" = 143, "4° Grado" = 146, "5° Grado" = 143,
+    "6° Grado" = 144, "7° Grado" = 138, "8° Grado" = 145, "9° Grado" = 143,
+    "1° Año de Bachillerato" = 170, "2° Año de Bachillerato" = 176
+  )
+})
 
 # Define UI for application
 ui <- fluidPage(
@@ -32,17 +46,17 @@ ui <- fluidPage(
                   choices = c("2° Grado", "3° Grado", "4° Grado", "5° Grado", "6° Grado", "7° Grado", 
                               "8° Grado", "9° Grado", "1° Año de Bachillerato", "2° Año de Bachillerato")),
       uiOutput("tomo_ui"),
-      textOutput("validation_message"),  # Display the validation reminder here
+      textOutput("validation_message"),
       numericInput("page", "Ingresar Número de Página:", value = 1, min = 1, max = 150),
-      textOutput("message"),  # Show success/error message here
-      actionButton("submit", "Registrar Progreso"),  # Button for submitting progress
-      actionButton("show_histogram", "Mostrar gráfica"),  # Button for showing the histogram
-      actionButton("show_2023_progress", "Mostrar la línea del avance final del 2023")  # Updated button label
+      textOutput("message"),
+      actionButton("submit", "Registrar Progreso"),
+      actionButton("show_histogram", "Mostrar gráfica"),
+      actionButton("show_2023_progress", "Mostrar la línea del avance final del 2023")
     ),
     
     mainPanel(
-      plotOutput("histogram"),  # Display the plot here
-      uiOutput("styled_table")  # Placeholder for the text under the plot
+      plotOutput("histogram"),
+      uiOutput("styled_table")
     )
   )
 )
@@ -56,13 +70,12 @@ server <- function(input, output, session) {
     }
   })
   
-  # Update the max value of the page number based on the selected grade
-  observeEvent(input$grade, {
-    max_page <- switch(input$grade,
-                       "2° Grado" = 150, "3° Grado" = 182, "4° Grado" = 192, "5° Grado" = 188,
-                       "6° Grado" = 188, "7° Grado" = 188, "8° Grado" = 188, "9° Grado" = 180,
-                       "1° Año de Bachillerato" = 224, "2° Año de Bachillerato" = 222)
-    updateNumericInput(session, "page", value = 1, min = 1, max = max_page)
+  # Reactive max page based on selected grade
+  max_page <- reactive({
+    switch(input$grade,
+           "2° Grado" = 150, "3° Grado" = 182, "4° Grado" = 192, "5° Grado" = 188,
+           "6° Grado" = 188, "7° Grado" = 188, "8° Grado" = 188, "9° Grado" = 180,
+           "1° Año de Bachillerato" = 224, "2° Año de Bachillerato" = 222)
   })
   
   # Display a reminder message about correct page number input
@@ -70,159 +83,103 @@ server <- function(input, output, session) {
     "Recuerde que el número de página debe ser un número entero positivo y dentro del rango del libro."
   })
   
-  # Function to format the page number in terms of Tomo and Page
-  format_tomo_page <- function(page) {
-    if (page <= 150) {
-      return(paste("Tomo I, Pág.", page))
-    } else {
-      return(paste("Tomo II, Pág.", page - 150))
-    }
-  }
-  
-  # Function to round the page numbers based on the decimal part
-  round_page_number <- function(page) {
-    if (page %% 1 < 0.5) {
-      return(floor(page))
-    } else {
-      return(ceiling(page))
-    }
-  }
-  
-  # 2023 final progress for each grade
-  final_2023_progress <- list(
-    "2° Grado" = 268, "3° Grado" = 143, "4° Grado" = 146, "5° Grado" = 143,
-    "6° Grado" = 144, "7° Grado" = 138, "8° Grado" = 145, "9° Grado" = 143,
-    "1° Año de Bachillerato" = 170, "2° Año de Bachillerato" = 176
-  )
-  
-  # Toggle for showing the 2023 final progress line
+  # Show 2023 progress toggle
   show_2023_progress <- reactiveVal(FALSE)
   observeEvent(input$show_2023_progress, {
     show_2023_progress(!show_2023_progress())
   })
   
-  # Function to generate histogram plot with the vertical lines
-  generate_histogram <- function(data, grade, user_page, tomo, show_2023) {
-    mean_page <- mean(data$Page, na.rm = TRUE)  # Calculate the mean page number
-    expected_page <- switch(grade,
-                            "2° Grado" = 265,  # Corrected expected page for Segundo Grado
-                            "3° Grado" = 176, "4° Grado" = 188, "5° Grado" = 186,
-                            "6° Grado" = 179, "7° Grado" = 187, "8° Grado" = 183, "9° Grado" = 174,
-                            "1° Año de Bachillerato" = 224, "2° Año de Bachillerato" = 218)
-    final_2023 <- final_2023_progress[[grade]]
-    
-    plot <- ggplot(data, aes(x = Page)) +
-      geom_histogram(binwidth = 1, fill = "skyblue", alpha = 0.7) +
-      geom_vline(xintercept = mean_page, color = "blue", linetype = "dashed", size = 1) +
-      geom_vline(xintercept = expected_page, color = "#00FF00", linetype = "dashed", size = 1) +
-      geom_vline(xintercept = user_page, color = "red", linetype = "dashed", size = 1)
-    
-    # Add dark orange line if show_2023 is TRUE
-    if (show_2023) {
-      plot <- plot + geom_vline(xintercept = final_2023, color = "darkorange", linetype = "dashed", size = 1)
-    }
-    
-    plot + labs(title = paste("Distribución de Páginas para", grade),
-                x = "Número de Página", y = "Frecuencia") +
-      theme_minimal()
-  }
-  
   # Function to validate and register the progress in the database only if valid
   observeEvent(input$submit, {
-    # Get the max page value based on the grade
-    max_page <- switch(input$grade,
-                       "2° Grado" = 150, "3° Grado" = 182, "4° Grado" = 192, "5° Grado" = 188,
-                       "6° Grado" = 188, "7° Grado" = 188, "8° Grado" = 188, "9° Grado" = 180,
-                       "1° Año de Bachillerato" = 224, "2° Año de Bachillerato" = 222)
-    
-    # Validate the page number (must be a positive integer and <= max_page)
-    if (input$page <= 0 || input$page %% 1 != 0) {  # Check if page is not a positive integer
-      output$message <- renderText("Por favor, introduzca un número de página válido y positivo.")
-      return()  # Skip registration if the page number is invalid
-    } else if (input$page > max_page) {  # Check if the page number exceeds the max allowed
-      output$message <- renderText(paste("El número de página no puede ser mayor a", max_page, "para este grado."))
-      return()  # Skip registration if the page number exceeds the max
+    # Validate the page number
+    if (input$page <= 0 || input$page %% 1 != 0 || input$page > max_page()) {
+      output$message <- renderText(if (input$page <= 0 || input$page %% 1 != 0) {
+        "Por favor, introduzca un número de página válido y positivo."
+      } else {
+        paste("El número de página no puede ser mayor a", max_page(), "para este grado.")
+      })
+      return()
     }
     
-    # Adjust page for Tomo II if applicable (for "Segundo Grado")
-    registered_page <- input$page
-    if (input$grade == "2° Grado" && input$tomo == 2) {
-      registered_page <- registered_page + 150  # Add 150 for Tomo II
-    }
+    # Adjust page for Tomo II if applicable
+    registered_page <- if (input$grade == "2° Grado" && input$tomo == 2) input$page + 150 else input$page
     
-    # Insert valid data into the database only if department is valid
+    # Insert data if department is valid
     if (input$department == "Seleccione un departamento") {
       output$message <- renderText("Por favor, elija un departamento válido.")
     } else {
-      insert_page_data(input$grade, input$department, registered_page)  # Insert the adjusted page
+      insert_page_data(input$grade, input$department, registered_page)
       output$message <- renderText("Progreso registrado exitosamente.")
     }
   })
   
   # Show histogram for selected grade
   observeEvent(input$show_histogram, {
-    query <- sprintf("SELECT * FROM page_data WHERE Grade = '%s'", input$grade)
-    data <- dbGetQuery(con, query)
+    data <- dbGetQuery(con, sprintf("SELECT * FROM page_data WHERE Grade = '%s'", input$grade))
     
-    # Adjust page for Tomo II if applicable (for the vertical red line)
-    user_page <- input$page
-    if (input$grade == "2° Grado" && input$tomo == 2) {
-      user_page <- user_page + 150  # Adjust user page before plotting the red line
-    }
+    # Adjust user page for Tomo II if applicable
+    user_page <- if (input$grade == "2° Grado" && input$tomo == 2) input$page + 150 else input$page
     
     output$histogram <- renderPlot({
       if (nrow(data) > 0) {
-        generate_histogram(data, input$grade, user_page, input$tomo, show_2023_progress())  # Use the adjusted user page here and pass the show_2023 toggle
+        generate_histogram(data, input$grade, user_page, show_2023_progress())
       } else {
         showNotification("No hay datos registrados para este grado.", type = "warning")
       }
     })
     
-    # Calculate Avance Promedio, Avance Esperado, and Final 2023 Progress in terms of Tomo and Page for Segundo Grado
-    mean_page <- mean(data$Page, na.rm = TRUE)
-    expected_page <- switch(input$grade,
-                            "2° Grado" = 265,  # Corrected expected page for Segundo Grado
-                            "3° Grado" = 176, "4° Grado" = 188, "5° Grado" = 186,
-                            "6° Grado" = 179, "7° Grado" = 187, "8° Grado" = 183, "9° Grado" = 174,
+    # Display summary labels
+    mean_page <- round(ifelse(nrow(data) > 0, mean(data$Page, na.rm = TRUE), NA))
+    expected_page <- switch(input$grade, "2° Grado" = 265, "3° Grado" = 176, "4° Grado" = 188, "5° Grado" = 186, 
+                            "6° Grado" = 179, "7° Grado" = 187, "8° Grado" = 183, "9° Grado" = 174, 
                             "1° Año de Bachillerato" = 224, "2° Año de Bachillerato" = 218)
-    final_2023 <- final_2023_progress[[input$grade]]
+    final_2023 <- final_2023_progress()[[input$grade]]
     
-    # Round the mean page number according to the custom rounding logic
-    rounded_mean_page <- round_page_number(mean_page)
+    # Format labels
+    format_page <- function(page) if (page <= 150) paste("Tomo I, Pág.", page) else paste("Tomo II, Pág.", page - 150)
+    mean_page_formatted <- if (input$grade == "2° Grado") format_page(mean_page) else paste("Pág.", mean_page)
+    expected_page_formatted <- if (input$grade == "2° Grado") format_page(expected_page) else paste("Pág.", expected_page)
+    final_2023_formatted <- if (input$grade == "2° Grado") "Tomo II, Pág. 118" else paste("Pág.", final_2023)
+    personal_legend <- if (input$grade == "2° Grado") paste("Tomo", input$tomo, ", Pág.", input$page) else paste("Pág.", input$page)
     
-    # Format Avance Promedio, Avance Esperado, and Final 2023 Progress for Segundo Grado
-    if (input$grade == "2° Grado") {
-      mean_page_formatted <- format_tomo_page(rounded_mean_page)
-      expected_page_formatted <- format_tomo_page(expected_page)
-      final_2023_formatted <- "Tomo II, Pág. 118"  # Display as Tomo II, Pág. 118 for Segundo Grado
-    } else {
-      mean_page_formatted <- paste("Pág.", rounded_mean_page)
-      expected_page_formatted <- paste("Pág.", expected_page)
-      final_2023_formatted <- paste("Pág.", final_2023)
-    }
-    
-    # Adjust legend for Segundo Grado with Tomo I or Tomo II
-    personal_legend <- ifelse(input$grade == "2° Grado", 
-                              paste("Tomo", input$tomo, ", Pág.", input$page), 
-                              paste("Pág.", input$page))
-    
-    # Create the HTML content for the line descriptions with the matching colors in a vertical layout
-    table_html <- paste0(
-      "<div style='text-align:left; display: block;'>",
-      "<p style='color:blue; margin: 0;'>Avance promedio: ", mean_page_formatted, "</p>",
-      "<p style='color:#00FF00; margin: 0;'>Avance esperado: ", expected_page_formatted, "</p>",
-      "<p style='color:red; margin: 0;'>Avance personal: ", personal_legend, "</p>",
-      "<p style='color:darkorange; margin: 0;'>Avance promedio final del 2023: ", final_2023_formatted, "</p>",
-      "</div>"
-    )
-    
-    # Render the HTML content with the colored text below the plot
+    # Display label text below plot
     output$styled_table <- renderUI({
-      HTML(table_html)
+      HTML(paste0(
+        "<div style='text-align:left; display: block;'>",
+        "<p style='color:blue; margin: 0;'>Avance promedio: ", mean_page_formatted, "</p>",
+        "<p style='color:#00FF00; margin: 0;'>Avance esperado: ", expected_page_formatted, "</p>",
+        "<p style='color:red; margin: 0;'>Avance personal: ", personal_legend, "</p>",
+        "<p style='color:darkorange; margin: 0;'>Avance promedio final del 2023: ", final_2023_formatted, "</p>",
+        "</div>"
+      ))
     })
   })
 }
 
-# Run the application 
-shinyApp(ui = ui, server = server)
+# Generate histogram with the vertical lines
+generate_histogram <- function(data, grade, user_page, show_2023) {
+  expected_page <- switch(grade,
+                          "2° Grado" = 265, "3° Grado" = 176, "4° Grado" = 188, "5° Grado" = 186,
+                          "6° Grado" = 179, "7° Grado" = 187, "8° Grado" = 183, "9° Grado" = 174,
+                          "1° Año de Bachillerato" = 224, "2° Año de Bachillerato" = 218)
+  
+  final_2023 <- final_2023_progress()[[grade]]
+  
+  plot <- ggplot(data, aes(x = Page)) +
+    geom_histogram(binwidth = 1, fill = "skyblue", alpha = 0.7) +
+    geom_vline(xintercept = mean(data$Page, na.rm = TRUE), color = "blue", linetype = "dashed", size = 1) +
+    geom_vline(xintercept = expected_page, color = "#00FF00", linetype = "dashed", size = 1) +
+    geom_vline(xintercept = user_page, color = "red", linetype = "dashed", size = 1)
+  
+  # Add the final 2023 line if the button is toggled
+  if (show_2023) {
+    plot <- plot + geom_vline(xintercept = final_2023, color = "darkorange", linetype = "dashed", size = 1)
+  }
+  
+  plot + labs(title = paste("Distribución de Páginas para", grade),
+              x = "Número de Página", y = "Frecuencia") +
+    theme_minimal()
+}
 
+# Run the application
+shinyApp(ui = ui, server = server)
