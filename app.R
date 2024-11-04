@@ -6,16 +6,30 @@ library(RMySQL)
 
 # Connect to MySQL database using RMySQL
 con <- dbConnect(RMySQL::MySQL(),
-                 dbname = "sql3720918",
+                 dbname = "sql3742502",
                  host = "sql3.freesqldatabase.com",
                  port = 3306,
-                 user = "sql3720918",
-                 password = "kHY2iadreR")
+                 user = "sql3742502",
+                 password = "hyRBRPmM1E")
 
 # Close the database connection when the app stops
 onStop(function() {
   dbDisconnect(con)
 })
+
+# Function to create the database and table if they do not exist
+initialize_database <- function(con) {
+  dbExecute(con, "
+    CREATE TABLE IF NOT EXISTS page_data (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      Department VARCHAR(255),
+      Grade VARCHAR(255),
+      Page INT
+    )
+  ")
+}
+
+initialize_database(con)
 
 # Function to insert valid data into the database
 insert_page_data <- function(grade, department, page) {

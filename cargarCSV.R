@@ -1,11 +1,11 @@
 library(RMySQL)
 library(DBI)
 con <- dbConnect(RMySQL::MySQL(),
-                 dbname = "sql5713063",
-                 host = "sql5.freesqldatabase.com",
+                 dbname = "sql3720918",
+                 host = "sql3.freesqldatabase.com",
                  port = 3306,
-                 user = "sql5713063",
-                 password = "NMXKA5SSGh")
+                 user = "sql3720918",
+                 password = "kHY2iadreR")
 
 yes##Lee el csv
 datos <- read.csv('mis_datos.csv')
@@ -16,7 +16,7 @@ datos <- read.csv('mis_datos.csv')
 
 ##extraer datos y guardar en csv
 resultados <- dbGetQuery(con, "SELECT * FROM page_data")
-write.csv(resultados, "avance.csv")
+write.csv(resultados, "respaldoDBJunio.csv")
 
 # Ejecutar la consulta SQL para eliminar todos los datos
 #dbSendQuery(con, "DELETE FROM page_data")
