@@ -1,0 +1,10 @@
+name: avance_profesores
+title:
+username: mined
+account: mined
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 13338253
+bundleId: 9362546
+url: https://mined.shinyapps.io/avance_profesores/
+version: 1
