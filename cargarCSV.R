@@ -1,17 +1,31 @@
 library(RMySQL)
 library(DBI)
+
 con <- dbConnect(RMySQL::MySQL(),
-                 dbname = "sql3720918",
+                 dbname = "sql3742502",
                  host = "sql3.freesqldatabase.com",
                  port = 3306,
-                 user = "sql3720918",
-                 password = "kHY2iadreR")
+                 user = "sql3742502",
+                 password = "hyRBRPmM1E")
 
 yes##Lee el csv
 datos <- read.csv('mis_datos.csv')
 
 # Escribe los datos del csv en la base de datos
 #dbWriteTable(con, name = "page_data", value = datos[-1,], row.names = FALSE, overwrite = FALSE)
+
+# Verifica cuántos registros cumplen la condición antes de eliminar
+before_delete <- dbGetQuery(con, "SELECT COUNT(*) AS count FROM page_data WHERE Page BETWEEN 0 AND 10")
+cat("Registros con Page entre 0 y 10 antes de eliminar:", before_delete$count, "\n")
+
+# Eliminar los registros
+affected_rows <- dbExecute(con, "DELETE FROM page_data WHERE Page BETWEEN 0 AND 10")
+cat("Registros eliminados:", affected_rows, "\n")
+
+# Verifica nuevamente
+after_delete <- dbGetQuery(con, "SELECT COUNT(*) AS count FROM page_data WHERE Page BETWEEN 0 AND 10")
+cat("Registros con Page entre 0 y 10 después de eliminar:", after_delete$count, "\n")
+
 
 
 ##extraer datos y guardar en csv
