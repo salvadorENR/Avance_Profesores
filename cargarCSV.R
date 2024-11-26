@@ -15,6 +15,10 @@ datos <- read.csv('mis_datos.csv')
 #dbWriteTable(con, name = "page_data", value = datos[-1,], row.names = FALSE, overwrite = FALSE)
 
 # Verifica cuántos registros cumplen la condición antes de eliminar
+registros <- dbGetQuery(con, "SELECT COUNT(*) AS count FROM page_data")
+cat("Cantidad de registros:", registros$count, "\n")
+
+# Verifica cuántos registros cumplen la condición antes de eliminar
 before_delete <- dbGetQuery(con, "SELECT COUNT(*) AS count FROM page_data WHERE Page BETWEEN 0 AND 10")
 cat("Registros con Page entre 0 y 10 antes de eliminar:", before_delete$count, "\n")
 
