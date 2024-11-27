@@ -18,6 +18,16 @@ datos <- read.csv('mis_datos.csv')
 registros <- dbGetQuery(con, "SELECT COUNT(*) AS count FROM page_data")
 cat("Cantidad de registros:", registros$count, "\n")
 
+# Consulta para obtener el conteo por departamento
+query <- "SELECT Department, COUNT(*) AS count FROM page_data GROUP BY Department"
+
+# Ejecutar la consulta
+department_counts <- dbGetQuery(con, query)
+
+# Mostrar los resultados
+print(department_counts)
+
+
 # Verifica cuántos registros cumplen la condición antes de eliminar
 before_delete <- dbGetQuery(con, "SELECT COUNT(*) AS count FROM page_data WHERE Page BETWEEN 0 AND 10")
 cat("Registros con Page entre 0 y 10 antes de eliminar:", before_delete$count, "\n")
