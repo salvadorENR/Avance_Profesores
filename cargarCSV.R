@@ -44,7 +44,7 @@ cat("Registros con Page entre 0 y 10 después de eliminar:", after_delete$count,
 
 ##extraer datos y guardar en csv
 resultados <- dbGetQuery(con, "SELECT * FROM page_data")
-write.csv(resultados, "respaldoDBJunio.csv")
+write.csv(resultados, "respaldoDBNov24.csv")
 
 # Ejecutar la consulta SQL para eliminar todos los datos
 #dbSendQuery(con, "DELETE FROM page_data")
